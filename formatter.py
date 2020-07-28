@@ -79,11 +79,6 @@ department_subarea_map = [
 ]
 
 
-# search_value = 'SUBAREA NO DEFINIDA (OTROS)'
-# match = [index for index, row in enumerate(
-#     department_subarea_map) if search_value in row]
-
-
 def get_departments_by_subarea(sub_area):
     match = [index for index, row in enumerate(
         department_subarea_map) if sub_area in row]
@@ -117,38 +112,55 @@ def get_records_as_formatted_record(date, row_label, trimester, records, subarea
     return formatted_record
 
 
-def generate_dataframe_record(year, date, row_label, trimester, subarea):
+def generate_formatted_record(year, date, row_label, trimester, subarea):
     department_dependencies = get_departments_by_subarea(subarea)
     records = get_departments_as_dataframe_records(
         year, trimester, department_dependencies)
     formatted_record = get_records_as_formatted_record(
         date, row_label, trimester, records, subarea)
-    return pd.DataFrame([formatted_record], columns=column_headers)
+    return formatted_record
 
 
-test = pd.DataFrame(columns=column_headers)
+def find_previous_record(year, trimester, sub_area):
+    return_value = None
+    for x in trimestal_pibs:
+        if x[0] == year and x[1] == trimester and x[2] == sub_area:
+            return_value = x[-1]
+    return return_value
 
-record = generate_dataframe_record(
-    2005, '2005-01-01', 0, 1, 'SUBAREA ANTIOQUIA')
 
+trimestal_pibs = []
 
-test = test.append(record)
+output_df = pd.DataFrame(columns=column_headers)
 
-print(test)
+for year in range(year_start, year_end + 1, 1):
+    for month in range(1, months + 1, 1):
+        print(
+            f'year {year}, month {month:02d} - Is being processed')
+        leap_year_increment = 1 if year % 4 == 0 and month == 2 else 0
+        trimester = 1 if month < 4 else (
+            2 if month < 7 else (3 if month < 10 else 4))
 
-test.to_csv('output.csv', index=False, encoding='utf-8')
+        for day in range(1, days_per_month[month - 1] + 1 + leap_year_increment, 1):
+            for hour in range(24):
+                for sub_area in sub_areas:
+                    existing_record = find_previous_record(
+                        year, trimester, sub_area)
+                    formatted_record = []
+                    if(existing_record):
+                        formatted_record = [f'{year}-{month:02d}-{day:02d}', hour, trimester, existing_record[3],
+                                            existing_record[4], existing_record[5], existing_record[6], existing_record[7], sub_area]
+                    else:
+                        formatted_record = generate_formatted_record(
+                            year, f'{year}-{month:02d}-{day:02d}', hour, trimester, sub_area)
+                        trimestal_pibs.append(
+                            [year, trimester, sub_area, formatted_record])
 
-# for year in range(year_start, year_end + 1, 1):
-#     for month in range(1, months + 1, 1):
+                    record = pd.DataFrame(
+                        [formatted_record], columns=column_headers)
 
-#         leap_year_increment = 1 if year % 4 == 0 and month == 2 else 0
-#         trimester = 1 if month < 4 else (
-#             2 if month < 7 else (3 if month < 10 else 4))
+                    output_df = output_df.append(record)
 
-#         for day in range(1, days_per_month[month - 1] + 1 + leap_year_increment, 1):
-#             for hour in range(24):
-#                 for sub_area in sub_areas:
-#                     print(
-#                         f'{trimester} | {year}-{month:02d}-{day:02d} | {hour} | {sub_area}')
-# print(df.head(16))
-# print(df)
+print('writing file!')
+output_df.to_csv('output.csv', index=False, encoding='utf-8')
+print('file created sucesfully!')
