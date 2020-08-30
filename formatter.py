@@ -16,15 +16,17 @@ def main():
 
     print(f'generate among {year_start} - {year_end}')
 
-    dfs = generate_records_in_range(df, year_start, year_end, output_df)
+    dfs = generate_records_in_range(df, year_start, year_end)
 
     print('<---->')
-    # print(len(dfs))
+    print(dfs)
+    print(len(dfs))
 
-    for df_idx in range(0, len(dfs)):
-     #   print(dfs[df_idx])
-     #   print(len(dfs[df_idx]))
-        output_df.append(dfs[df_idx])
+    output_df = pd.concat(dfs)
+
+    print('<--!!!!!!!!!!!!!!!!!!!!!!!!!!!-->')
+    print(output_df)
+    print(output_df.shape)
 
     output_df.to_csv(
         f'output.{year_start}-{year_end}.csv', index=False, encoding='utf-8')
@@ -37,27 +39,28 @@ def load_xlsx_as_df():
     return df
 
 
-def generate_records_in_range(df, start, end, output_df):
-    dfs = [generate_records_for_year_days(df, year, output_df)
+def generate_records_in_range(df, start, end):
+    dfs = [generate_records_for_year_days(df, year)
            for year in range(start, end + 1, 1)]
+    print('vvvvvvvvvvvvvvvvvvvvvvvvvvvvv')
     print(dfs)
     print(len(dfs))
     return dfs
 
 
-def generate_records_for_year_days(df, year, output_df):
+def generate_records_for_year_days(df, year):
     print(f'Processing year: {year}')
     records = [get_regions_from_year_day(df, year, day) for day in range(
         1, 365 + 1 + is_leap_year(year), 1)]
     year = np.array(records)
     year = year.reshape(year.shape[0] * year.shape[1], -1)
-    print(year.shape)
-    print(year)
-    output_df = output_df.append(year, ignore_index=True)
-    print('<---->')
-    print(output_df)
-    print(output_df.shape)
-    return output_df
+
+    result_headers = ['FECHA', 'HORA', 'PIB_REGIONAL', 'REGION']
+
+    year_df = pd.DataFrame(year, columns=result_headers)
+    print(year_df)
+    print(year_df.shape)
+    return year_df
 
 
 def is_leap_year(year):
